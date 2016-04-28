@@ -100,6 +100,8 @@ namespace xcom
         // Read a 32-bit signed integer
         int32_t read_int();
 
+        int16_t read_int16();
+
         // Read a single-precision float
         float read_float();
 

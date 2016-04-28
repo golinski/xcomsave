@@ -31,7 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 namespace xcom
 {
     // The supported saved game version
-    static const int save_version = 0x10;
+    static const int save_version = 0x0F;
 
     // A buffer object for performing file IO. An xcom save may be read from
     // or written to a buffer instance or a file.
@@ -251,7 +251,7 @@ namespace xcom
             property(n, kind_t::object_property), actor(a) {}
 
         virtual size_t size() const {
-            return 8;
+            return 4;
         }
 
         virtual void accept(property_visitor *v) {

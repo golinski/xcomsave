@@ -393,25 +393,20 @@ namespace xcom
         return total;
     }
 
-    std::string build_actor_name(const std::string& package, const std::string& cls, int instance)
+    std::string build_actor_name(const std::string& cls, int instance)
     {
         std::stringstream ret;
-        ret << package << "." << cls << "_" << (instance - 1);
+        ret << cls << "_" << (instance - 1);
         return ret.str();
     }
 
-    std::tuple<std::string, std::string, int> decompose_actor_name(const std::string& actorName)
+    std::tuple<std::string, int> decompose_actor_name(const std::string& actorName)
     {
-        size_t underscore;
-        size_t dot;
+        size_t underscore = actorName.find_last_of('_');
 
-        dot = actorName.find_first_of('.');
-        underscore = actorName.find_last_of('_');
-
-        std::string package = actorName.substr(0, dot);
-        std::string cls = actorName.substr(dot + 1, underscore - dot - 1);
+        std::string cls = actorName.substr(0, underscore);
         int instance = std::stoi(actorName.substr(underscore + 1));
-        return std::make_tuple(package, cls, instance + 1);
+        return std::make_tuple(cls, instance + 1);
     }
 
     format_exception::format_exception(std::ptrdiff_t offset, const char *msg, ...)

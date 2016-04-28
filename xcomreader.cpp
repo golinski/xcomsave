@@ -27,6 +27,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cstdlib>
 #include <cstring>
 
+#include <iostream>
+
 namespace xcom
 {
     static const size_t compressed_data_start = 1024;
@@ -38,10 +40,9 @@ namespace xcom
         header hdr;
         hdr.version = r.read_int();
         if (hdr.version != save_version) {
-            fprintf(stderr, 
-                "Error: Data does not appear to be an xcom save: expected file version %d but got %d\n", 
+            throw format_exception(r.offset(),
+                    "Error: Data does not appear to be an xcom enemy unknown save: expected file version %d but got %d\n",
                 save_version, hdr.version);
-            return{ 0 };
         }
         hdr.uncompressed_size = r.read_int();
         hdr.game_number = r.read_int();
@@ -84,24 +85,10 @@ namespace xcom
         actor_table actors;
         int32_t actor_count = r.read_int();
 
-        // We expect all entries to be of the form <package> <0> <actor>
-        // <instance>, or two entries per real actor.
-        assert(actor_count % 2 == 0);
-
-        for (int i = 0; i < actor_count; i += 2) {
+        for (int i = 0; i < actor_count; i += 1) {
             std::string actor_name = r.read_string();
             int32_t instance = r.read_int();
-            if (instance == 0) {
-                throw format_exception(r.offset(), 
-                        "Malformed actor table entry: expected a non-zero instance\n");
-            }
-            std::string package = r.read_string();
-            int32_t sentinel = r.read_int();
-            if (sentinel != 0) {
-                throw format_exception(r.offset(), 
-                        "Malformed actor table entry: missing 0 instance\n");
-            }
-            actors.push_back(build_actor_name(package, actor_name, instance));
+            actors.push_back(build_actor_name(actor_name, instance));
         }
 
         return actors;
@@ -228,6 +215,7 @@ namespace xcom
             if (array_bound * 8 == array_data_size) {
                 // If the array data size is exactly 8x the array bound, we have an array of objects where
                 // each element is an actor id.
+                // This never happen in EU format (only EW)
                 std::vector<int32_t> elements;
                 for (int32_t i = 0; i < array_bound; ++i) {
                     int32_t actor1 = r.read_int();
@@ -326,16 +314,9 @@ namespace xcom
 
             property_ptr prop;
             if (prop_type.compare("ObjectProperty") == 0) {
-                assert(prop_size == 8);
-                int32_t actor1 = r.read_int();
-                int32_t actor2 = r.read_int();
-                if (actor1 != -1 && actor1 != (actor2 + 1)) {
-                    throw format_exception(r.offset(), 
-                            "Assertion failed: actor references in object property not related.\n");
-                }
-
-                prop = std::make_unique<object_property>(name, 
-                        (actor1 == -1) ? actor1 : (actor1 / 2));
+                assert(prop_size == 4);
+                int32_t actor = r.read_int();
+                prop = std::make_unique<object_property>(name, actor);
             }
             else if (prop_type.compare("IntProperty") == 0) {
                 assert(prop_size == 4);
@@ -520,7 +501,6 @@ namespace xcom
             if (memcmp(entry.zeros, all_zeros, 8) != 0) {
                 throw format_exception(r.offset(), 
                         "Expected all zeros in name table entry\n");
-                return{};
             }
             entry.data_length = r.read_int();
 
@@ -545,7 +525,6 @@ namespace xcom
             if (none != "None") {
                 throw format_exception(r.offset(),
                     "Failed to locate 'None' after actor table\n");
-                return{};
             }
 
             chunk.unknown_int2 = r.read_int();

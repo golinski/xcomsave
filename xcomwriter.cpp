@@ -65,13 +65,11 @@ namespace xcom
     static void write_actor_table(xcom_io& w, const actor_table& actors)
     {
         // Each actorTable entry has 2 entries in the save table; names are split.
-        w.write_int(actors.size() * 2);
+        w.write_int(actors.size());
         for (const std::string& actor : actors) {
-            std::tuple<std::string, std::string, int> tup = decompose_actor_name(actor);
-            w.write_string(std::get<1>(tup));
-            w.write_int(std::get<2>(tup));
+            std::tuple<std::string, int> tup = decompose_actor_name(actor);
             w.write_string(std::get<0>(tup));
-            w.write_int(0);
+            w.write_int(std::get<1>(tup));
         }
     }
 
@@ -108,14 +106,7 @@ namespace xcom
 
         virtual void visit(object_property *prop) override
         {
-            if (prop->actor == 0xffffffff) {
-                io_.write_int(prop->actor);
-                io_.write_int(prop->actor);
-            }
-            else {
-                io_.write_int(prop->actor * 2 + 1);
-                io_.write_int(prop->actor * 2);
-            }
+            io_.write_int(prop->actor);
         }
 
         virtual void visit(enum_property *prop) override
